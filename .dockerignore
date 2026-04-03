@@ -1,0 +1,15 @@
+node_modules/
+vendor/
+.env
+.env.*
+!.env.example
+public/build/
+storage/logs/
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+.git/
+.gitignore
+*.log
+tests/
+docker-compose.override.yml
