@@ -30,15 +30,17 @@ RUN npm ci && npm run build && rm -rf node_modules
 
 RUN mkdir -p /var/www/html/bootstrap/cache
 
-# 設定權限（storage 在啟動時建立，bootstrap/cache 在 build 時建立）
-RUN chmod -R 775 /var/www/html/bootstrap/cache
+# 6. 在 build time 完成所有初始化（Cloud Run 無 volume，SQLite bake 進 image）
+RUN cp .env.example .env \
+    && php artisan key:generate \
+    && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
+    && chmod -R 775 storage bootstrap/cache \
+    && touch database/database.sqlite \
+    && php artisan migrate --force \
+    && php artisan db:seed --force
 
 EXPOSE 8080
+# 啟動時只更新 APP_URL（若有設環境變數）再直接 serve，讓容器快速就緒
 CMD ["sh", "-c", "\
-    cp .env.example .env && \
-    php artisan key:generate && \
-    mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs && \
-    chmod -R 775 storage bootstrap/cache && \
-    touch database/database.sqlite && \
-    php artisan migrate --force && \
+    [ -n \"$APP_URL\" ] && sed -i \"s|APP_URL=.*|APP_URL=$APP_URL|\" .env ; \
     php artisan serve --host=0.0.0.0 --port=8080"]
