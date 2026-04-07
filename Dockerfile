@@ -1,59 +1,44 @@
-# ─────────────────────────────────────────────
-# Stage 1 – Build front-end assets
-# ─────────────────────────────────────────────
-FROM node:20-alpine AS assets
+FROM php:8.4-fpm
 
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# ─────────────────────────────────────────────
-# Stage 2 – PHP + Swoole application
-# ─────────────────────────────────────────────
-FROM php:8.3-cli AS app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        git curl libpng-dev libonig-dev libxml2-dev libzip-dev \
-        libfreetype6-dev libjpeg62-turbo-dev zlib1g-dev unzip \
+# 1. 安裝系統依賴 + Node.js 22
+RUN apt-get update && apt-get install -y \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libzip-dev \
+    zip \
+    git \
+    unzip \
+    curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) \
-        pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip opcache \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
-    && pecl install swoole \
-    && docker-php-ext-enable swoole \
-    && apt-get purge -y --auto-remove \
-    && rm -rf /var/lib/apt/lists/*
+    && docker-php-ext-install pdo_mysql gd zip \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs
 
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-
+# 2. 複製程式碼
+COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Install PHP dependencies first (layer cache friendly)
-COPY composer.json composer.lock ./
-RUN composer install \
-    --no-interaction \
-    --no-scripts \
-    --no-autoloader \
-    --prefer-dist \
-    --no-dev
+# 3. 安裝 Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Copy application source
-COPY . .
+# 4. 執行 Composer Install
+RUN composer install --no-dev --optimize-autoloader
 
-# Copy compiled front-end assets from stage 1
-COPY --from=assets /app/public/build ./public/build
+# 5. 安裝 npm 依賴並 build 前端
+RUN npm ci && npm run build && rm -rf node_modules
 
-# Finalise autoloader & run post-install hooks
-RUN composer dump-autoload --optimize \
-    && composer run-script post-autoload-dump || true
+RUN mkdir -p /var/www/html/bootstrap/cache
 
-# Ensure storage is writable by the web process
-RUN chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# 設定權限（storage 在啟動時建立，bootstrap/cache 在 build 時建立）
+RUN chmod -R 775 /var/www/html/bootstrap/cache
 
-EXPOSE 8000
-
-ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
+EXPOSE 8080
+CMD ["sh", "-c", "\
+    cp .env.example .env && \
+    php artisan key:generate && \
+    mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs && \
+    chmod -R 775 storage bootstrap/cache && \
+    touch database/database.sqlite && \
+    php artisan migrate --force && \
+    php artisan serve --host=0.0.0.0 --port=8080"]

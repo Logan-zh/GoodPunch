@@ -3,7 +3,6 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
-      - '--target=app'
       - '--tag=$_IMAGE_NAME:$COMMIT_SHA'
       - '--tag=$_IMAGE_NAME:latest'
       - '--cache-from=$_IMAGE_NAME:latest'
@@ -36,7 +35,7 @@ steps:
 
 substitutions:
   _SERVICE_NAME: goodpunch
-  _REGION: europe-west1
+  _REGION: asia-east1
   _IMAGE_NAME: gcr.io/$PROJECT_ID/goodpunch
 
 options:
