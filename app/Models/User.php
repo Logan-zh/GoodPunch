@@ -3,22 +3,24 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Carbon\Carbon;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
-use App\Traits\HasCompany;
-use App\Models\PunchCorrection;
+use Laravel\Sanctum\HasApiTokens;
 
 #[Fillable(['name', 'email', 'password', 'role', 'company_id', 'hired_at', 'supervisor_id', 'employee_id', 'position', 'department_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     // Remove automatic appends to prevent infinite recursion during auth resolution
     // protected $appends = ['leave_entitlements'];
@@ -42,7 +44,7 @@ class User extends Authenticatable
      */
     public function getLeaveEntitlementsAttribute()
     {
-        if (!$this->hired_at) {
+        if (! $this->hired_at) {
             return [
                 'annual' => 0, 'personal' => 0, 'sick' => 0,
                 'annual_remaining' => 0, 'personal_remaining' => 0, 'sick_remaining' => 0,
@@ -50,11 +52,11 @@ class User extends Authenticatable
             ];
         }
 
-        $hiredAt = \Carbon\Carbon::parse($this->hired_at);
+        $hiredAt = Carbon::parse($this->hired_at);
         $years = $hiredAt->diffInDays(now()) / 365.25;
         $company = $this->company;
-        $workHours = $company ? (float)$company->work_hours_per_day : 8.0;
-        
+        $workHours = $company ? (float) $company->work_hours_per_day : 8.0;
+
         $policies = LeavePolicy::where('company_id', $this->company_id)->get();
 
         // Total Entitlements in Hours
@@ -108,22 +110,22 @@ class User extends Authenticatable
         return $this->hasMany(Punch::class);
     }
 
-    public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
     }
 
-    public function leaveRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function leaveRequests(): HasMany
     {
         return $this->hasMany(LeaveRequest::class);
     }
 
-    public function punchCorrections(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function punchCorrections(): HasMany
     {
         return $this->hasMany(PunchCorrection::class);
     }
 
-    public function salaryStructure(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function salaryStructure(): HasOne
     {
         return $this->hasOne(SalaryStructure::class);
     }
