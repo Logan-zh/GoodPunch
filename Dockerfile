@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libfreetype6-dev libjpeg62-turbo-dev zlib1g-dev unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
-        pdo_mysql mbstring exif pcntl bcmath gd zip opcache \
+        pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip opcache \
     && pecl install redis \
     && docker-php-ext-enable redis \
     && pecl install swoole \

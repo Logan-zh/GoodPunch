@@ -1,0 +1,26 @@
+.gcloudignore
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+
+# PHP vendor (will be re-installed during build)
+vendor/
+
+# Tests
+tests/
+
+# Local dev tools
+docker-compose.yml
+docker-compose.override.yml
+
+# Storage data (not part of image)
+storage/app/public/*
+storage/logs/*.log
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*

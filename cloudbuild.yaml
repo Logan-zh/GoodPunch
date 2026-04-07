@@ -1,0 +1,43 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--target=app'
+      - '--tag=$_IMAGE_NAME:$COMMIT_SHA'
+      - '--tag=$_IMAGE_NAME:latest'
+      - '--cache-from=$_IMAGE_NAME:latest'
+      - '.'
+    timeout: '1200s'
+
+  # Push both tags
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '$_IMAGE_NAME:$COMMIT_SHA']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '$_IMAGE_NAME:latest']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '$_SERVICE_NAME'
+      - '--image=$_IMAGE_NAME:$COMMIT_SHA'
+      - '--region=$_REGION'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--max-instances=3'
+      - '--timeout=60'
+
+substitutions:
+  _SERVICE_NAME: goodpunch
+  _REGION: europe-west1
+  _IMAGE_NAME: gcr.io/$PROJECT_ID/goodpunch
+
+options:
+  logging: CLOUD_LOGGING_ONLY
