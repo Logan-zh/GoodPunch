@@ -1,12 +1,13 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
+import { Head, useForm, router, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
 const props = defineProps({
     users: Object,
     supervisors: Array,
     departments: Array,
+    targetCompanyId: Number,
 });
 
 const isCreating = ref(false);
@@ -24,6 +25,7 @@ const form = useForm({
     employee_id: '',
     position: '',
     department_id: '',
+    company_id: '',
 });
 
 const submit = () => {
@@ -91,9 +93,13 @@ const confirmDelete = (user) => {
                     <div>
                         <h1 class="text-3xl font-bold text-white">{{ $t('users.title') }}</h1>
                         <p class="text-slate-400 mt-2">{{ $t('users.subtitle') }}</p>
+                        <div v-if="targetCompanyId" class="mt-2 inline-flex items-center gap-2 text-xs bg-violet-500/10 text-violet-400 border border-violet-500/20 px-3 py-1 rounded-full">
+                            <span>Viewing company #{{ targetCompanyId }}</span>
+                            <Link :href="route('admin.companies.index')" class="hover:text-violet-200">← Back to Enterprises</Link>
+                        </div>
                     </div>
                     <button 
-                        @click="isCreating = true; editingUser = null; form.reset()"
+                        @click="isCreating = true; editingUser = null; form.reset(); form.company_id = props.targetCompanyId || ''"
                         class="bg-violet-600 hover:bg-violet-500 text-white font-bold py-2 px-4 rounded-lg transition-all"
                     >
                         {{ $t('users.add_user') }}
@@ -102,7 +108,7 @@ const confirmDelete = (user) => {
 
                 <!-- Create/Edit Modal Overlay -->
                 <div v-if="isCreating" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div class="glass-card max-w-md w-full p-8 relative">
+                    <div class="glass-card max-w-md w-full p-8 relative overflow-y-auto max-h-[90vh]">
                         <button @click="isCreating = false" class="absolute top-4 right-4 text-slate-400 hover:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -115,10 +121,12 @@ const confirmDelete = (user) => {
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">{{ $t('users.name') }}</label>
                                 <input v-model="form.name" type="text" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-lg p-2.5" required>
+                                <p v-if="form.errors.name" class="text-rose-400 text-xs mt-1">{{ form.errors.name }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">{{ $t('users.email') }}</label>
                                 <input v-model="form.email" type="email" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-lg p-2.5" required>
+                                <p v-if="form.errors.email" class="text-rose-400 text-xs mt-1">{{ form.errors.email }}</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-300 mb-1">{{ $t('users.role') }}</label>
@@ -164,10 +172,12 @@ const confirmDelete = (user) => {
                                 <div>
                                     <label class="block text-sm font-medium text-slate-300 mb-1">{{ $t('users.password') }}</label>
                                     <input v-model="form.password" type="password" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-lg p-2.5" required>
+                                    <p v-if="form.errors.password" class="text-rose-400 text-xs mt-1">{{ form.errors.password }}</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-300 mb-1">{{ $t('users.confirm_password') }}</label>
                                     <input v-model="form.password_confirmation" type="password" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-lg p-2.5" required>
+                                    <p v-if="form.errors.password_confirmation" class="text-rose-400 text-xs mt-1">{{ form.errors.password_confirmation }}</p>
                                 </div>
                             </div>
 
@@ -181,7 +191,7 @@ const confirmDelete = (user) => {
 
                 <!-- Reset Password Modal -->
                 <div v-if="resettingPassword" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div class="glass-card max-w-md w-full p-8">
+                    <div class="glass-card max-w-md w-full p-8 overflow-y-auto max-h-[90vh]">
                         <h2 class="text-2xl font-bold text-white mb-2">{{ $t('users.reset_password') }}</h2>
                         <p class="text-slate-400 mb-6">{{ resettingPassword.name }}</p>
                         

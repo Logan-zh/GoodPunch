@@ -12,7 +12,7 @@ class DepartmentController extends Controller
 {
     public function index()
     {
-        /** @var \App\Models\User $currentUser */
+        /** @var User $currentUser */
         $currentUser = auth()->user();
         $companyId = $currentUser->company_id;
 
@@ -25,15 +25,19 @@ class DepartmentController extends Controller
             ->whereIn('role', ['admin', 'manager', 'user'])
             ->get(['id', 'name']);
 
+        $users = User::where('company_id', $companyId)
+            ->get(['id', 'name', 'department_id']);
+
         return Inertia::render('Admin/Departments/Index', [
             'departments' => $departments,
             'managers' => $managers,
+            'users' => $users,
         ]);
     }
 
     public function store(Request $request)
     {
-        /** @var \App\Models\User $currentUser */
+        /** @var User $currentUser */
         $currentUser = auth()->user();
 
         $request->validate([
@@ -78,5 +82,18 @@ class DepartmentController extends Controller
         $department->delete();
 
         return back()->with('success', 'Department deleted successfully.');
+    }
+
+    public function assignUser(Request $request, Department $department)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        User::where('id', $request->user_id)
+            ->where('company_id', $department->company_id)
+            ->update(['department_id' => $department->id]);
+
+        return back()->with('success', 'User assigned to department successfully.');
     }
 }

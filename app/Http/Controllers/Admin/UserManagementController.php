@@ -3,22 +3,23 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
-use App\Models\User;
 use App\Models\Department;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 
 class UserManagementController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        /** @var \App\Models\User $currentUser */
+        /** @var User $currentUser */
         $currentUser = auth()->user();
-        $companyId = $currentUser->company_id;
-        
+        $companyId = $currentUser->role === 'admin' && $request->filled('company_id')
+            ? (int) $request->company_id
+            : $currentUser->company_id;
+
         return Inertia::render('Admin/Users/Index', [
             'users' => User::where('company_id', $companyId)
                 ->with('supervisor')
@@ -30,6 +31,7 @@ class UserManagementController extends Controller
                 ->get(['id', 'name']),
             'departments' => Department::where('company_id', $companyId)
                 ->get(['id', 'name']),
+            'targetCompanyId' => $companyId,
         ]);
     }
 
@@ -47,6 +49,12 @@ class UserManagementController extends Controller
             'department_id' => 'nullable|exists:departments,id',
         ]);
 
+        /** @var User $currentUser */
+        $currentUser = auth()->user();
+        $companyId = $currentUser->role === 'admin' && $request->filled('company_id')
+            ? (int) $request->company_id
+            : $currentUser->company_id;
+
         User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -57,7 +65,7 @@ class UserManagementController extends Controller
             'employee_id' => $request->employee_id,
             'position' => $request->position,
             'department_id' => $request->department_id,
-            'company_id' => auth()->user()->company_id,
+            'company_id' => $companyId,
         ]);
 
         return back()->with('success', 'User created successfully.');
@@ -100,7 +108,7 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        return back()->with('success', 'Password reset successfully for ' . $user->name);
+        return back()->with('success', 'Password reset successfully for '.$user->name);
     }
 
     public function destroy(User $user)

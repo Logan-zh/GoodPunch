@@ -6,15 +6,21 @@ import { ref, computed } from 'vue';
 const props = defineProps({
     departments: Array,
     managers: Array,
+    users: Array,
 });
 
 const isCreating = ref(false);
 const editingDepartment = ref(null);
+const assigningDepartment = ref(null);
 
 const form = useForm({
     name: '',
     parent_id: '',
     manager_id: '',
+});
+
+const assignForm = useForm({
+    user_id: '',
 });
 
 const rootDepartments = computed(() =>
@@ -63,6 +69,23 @@ const confirmDelete = (dept) => {
     }
 };
 
+const openAssign = (dept) => {
+    assigningDepartment.value = dept;
+    assignForm.reset();
+};
+
+const submitAssign = () => {
+    assignForm.post(route('admin.departments.assign-user', assigningDepartment.value.id), {
+        onSuccess: () => {
+            assigningDepartment.value = null;
+            assignForm.reset();
+        },
+    });
+};
+
+const usersNotInDepartment = (deptId) =>
+    props.users.filter(u => u.department_id !== deptId);
+
 const availableParents = computed(() => {
     if (!editingDepartment.value) return props.departments;
     return props.departments.filter(d => d.id !== editingDepartment.value.id);
@@ -98,7 +121,7 @@ const availableParents = computed(() => {
 
                 <!-- Create/Edit Modal -->
                 <div v-if="isCreating" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div class="glass-card max-w-md w-full p-8 relative">
+                    <div class="glass-card max-w-md w-full p-8 relative overflow-y-auto max-h-[90vh]">
                         <button @click="isCreating = false" class="absolute top-4 right-4 text-slate-400 hover:text-white">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -188,10 +211,10 @@ const availableParents = computed(() => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right space-x-3">
+                                        <button @click="openAssign(dept)" class="text-emerald-400 hover:text-emerald-300 transition-colors text-sm">Assign</button>
                                         <button @click="editDepartment(dept)" class="text-slate-400 hover:text-white transition-colors text-sm">Edit</button>
                                         <button @click="confirmDelete(dept)" class="text-slate-400 hover:text-rose-400 transition-colors text-sm">Delete</button>
-                                    </td>
-                                </tr>
+                                    </td>                                </tr>
 
                                 <tr
                                     v-for="child in childrenOf(dept.id)"
@@ -215,6 +238,7 @@ const availableParents = computed(() => {
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 text-right space-x-3">
+                                        <button @click="openAssign(child)" class="text-emerald-400 hover:text-emerald-300 transition-colors text-sm">Assign</button>
                                         <button @click="editDepartment(child)" class="text-slate-400 hover:text-white transition-colors text-sm">Edit</button>
                                         <button @click="confirmDelete(child)" class="text-slate-400 hover:text-rose-400 transition-colors text-sm">Delete</button>
                                     </td>
@@ -223,6 +247,37 @@ const availableParents = computed(() => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- Assign Member Modal -->
+        <div v-if="assigningDepartment" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="glass-card max-w-sm w-full p-8 relative overflow-y-auto max-h-[90vh]">
+                <button @click="assigningDepartment = null" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
+                <h2 class="text-xl font-bold text-white mb-1">Assign Member</h2>
+                <p class="text-slate-400 text-sm mb-6">→ {{ assigningDepartment.name }}</p>
+
+                <form @submit.prevent="submitAssign" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Select Staff</label>
+                        <select v-model="assignForm.user_id" class="w-full bg-slate-900/50 border border-slate-700 text-white rounded-lg p-2.5" required>
+                            <option value="">-- Choose a staff member --</option>
+                            <option v-for="u in usersNotInDepartment(assigningDepartment.id)" :key="u.id" :value="u.id">
+                                {{ u.name }}
+                            </option>
+                        </select>
+                        <p v-if="assignForm.errors.user_id" class="text-rose-400 text-xs mt-1">{{ assignForm.errors.user_id }}</p>
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" @click="assigningDepartment = null" class="flex-1 bg-slate-800 text-white py-2.5 rounded-lg">Cancel</button>
+                        <button type="submit" :disabled="assignForm.processing" class="flex-1 bg-emerald-600 text-white py-2.5 rounded-lg disabled:opacity-50">Assign</button>
+                    </div>
+                </form>
             </div>
         </div>
     </AuthenticatedLayout>

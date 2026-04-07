@@ -135,6 +135,16 @@ const closeSidebar = () => { sidebarOpen.value = false; };
                     </Link>
 
                     <Link
+                        :href="route('admin.departments.index')"
+                        @click="closeSidebar"
+                        :class="route().current('admin.departments.*') ? 'bg-violet-600/20 text-violet-300 border-violet-500/70' : 'text-slate-400 hover:bg-white/5 hover:text-white border-transparent'"
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-0.5 border-l-2"
+                    >
+                        <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                        部門管理
+                    </Link>
+
+                    <Link
                         :href="route('admin.settings.index')"
                         @click="closeSidebar"
                         :class="route().current('admin.settings.*') ? 'bg-violet-600/20 text-violet-300 border-violet-500/70' : 'text-slate-400 hover:bg-white/5 hover:text-white border-transparent'"
@@ -157,16 +167,6 @@ const closeSidebar = () => { sidebarOpen.value = false; };
                     >
                         <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         企業管理
-                    </Link>
-
-                    <Link
-                        :href="route('admin.departments.index')"
-                        @click="closeSidebar"
-                        :class="route().current('admin.departments.*') ? 'bg-violet-600/20 text-violet-300 border-violet-500/70' : 'text-slate-400 hover:bg-white/5 hover:text-white border-transparent'"
-                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 mb-0.5 border-l-2"
-                    >
-                        <svg class="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-                        部門管理
                     </Link>
                 </div>
             </nav>
