@@ -1,15 +1,25 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 
 const page = usePage();
 const sidebarOpen = ref(false);
+const alert = ref(page.props.alert ?? null);
 
 const user = computed(() => page.props.auth.user);
 const isManager = computed(() => ['admin', 'manager'].includes(user.value?.role));
 const isAdmin = computed(() => user.value?.role === 'admin');
 
 const closeSidebar = () => { sidebarOpen.value = false; };
+const dismissAlert = () => { alert.value = null; };
+
+watch(
+    () => page.props.alert,
+    (value) => {
+        alert.value = value ?? null;
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -208,6 +218,44 @@ const closeSidebar = () => { sidebarOpen.value = false; };
 
         <!-- ========== MAIN AREA ========== -->
         <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <Transition
+                enter-active-class="ease-out duration-200"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="ease-in duration-150"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div v-if="alert" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" @click.self="dismissAlert">
+                    <div class="w-full max-w-md rounded-3xl border border-white/10 bg-slate-950 px-6 py-7 text-white shadow-2xl shadow-black/40 sm:px-8">
+                        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-amber-400/30 bg-amber-500/10 text-amber-300 shadow-[0_0_35px_rgba(251,191,36,0.18)]">
+                            <svg class="h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 9v4m0 4h.01M10.29 3.86l-7.5 13A1 1 0 003.66 18h16.68a1 1 0 00.87-1.5l-7.5-13a1 1 0 00-1.74 0z" />
+                            </svg>
+                        </div>
+
+                        <div class="mt-5 text-center">
+                            <h3 class="text-2xl font-bold tracking-tight text-white">
+                                {{ alert.title ?? '通知' }}
+                            </h3>
+                            <p class="mt-3 text-sm leading-6 text-slate-300">
+                                {{ alert.message }}
+                            </p>
+                        </div>
+
+                        <div class="mt-7 flex justify-center">
+                            <button
+                                type="button"
+                                class="inline-flex items-center justify-center rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-amber-500/20 transition hover:bg-amber-300"
+                                @click="dismissAlert"
+                            >
+                                知道了
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
 
             <!-- Top Header -->
             <header class="flex items-center h-16 px-4 sm:px-6 bg-slate-950/50 border-b border-white/5 backdrop-blur-sm flex-shrink-0">

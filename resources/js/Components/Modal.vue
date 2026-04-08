@@ -37,6 +37,7 @@ watch(
             }, 200);
         }
     },
+    { immediate: true },
 );
 
 const close = () => {

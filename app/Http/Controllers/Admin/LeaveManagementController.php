@@ -3,21 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\User;
-
 use App\Models\LeaveRequest;
-use App\Models\LeaveApprovalStep;
-use Inertia\Inertia;
+use App\Models\User;
+use App\Notifications\LeaveRequestStatusChanged;
+use App\Notifications\LeaveRequestSubmitted;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Inertia\Inertia;
 
 class LeaveManagementController extends Controller
 {
     public function index()
     {
         // Managers/Admins can see requests where they are the current approver
-        $currentUser = auth()->user();
-        
+        $currentUser = Auth::user();
+
+        if ($response = $this->redirectIfCompanyIsMissing($currentUser)) {
+            return $response;
+        }
+
         $pendingRequests = LeaveRequest::with(['user', 'steps.approver'])
             ->where('status', 'pending')
             ->whereHas('steps', function ($query) use ($currentUser) {
@@ -29,8 +35,8 @@ class LeaveManagementController extends Controller
             ->filter(function ($request) use ($currentUser) {
                 // Only show if it's the current step for this user
                 return $request->steps->where('step_index', $request->current_step)
-                                     ->where('approver_id', $currentUser->id)
-                                     ->isNotEmpty();
+                    ->where('approver_id', $currentUser->id)
+                    ->isNotEmpty();
             });
 
         return Inertia::render('Admin/LeaveRequests/Index', [
@@ -45,10 +51,15 @@ class LeaveManagementController extends Controller
             'comment' => 'nullable|string',
         ]);
 
-        $currentUser = auth()->user();
+        $currentUser = Auth::user();
+
+        if ($response = $this->redirectIfCompanyIsMissing($currentUser)) {
+            return $response;
+        }
+
         $currentStep = $leaveRequest->steps()->where('step_index', $leaveRequest->current_step)->first();
 
-        if (!$currentStep || $currentStep->approver_id !== $currentUser->id) {
+        if (! $currentStep || $currentStep->approver_id !== $currentUser->id) {
             return back()->with('error', 'You are not the authorized approver for the current step.');
         }
 
@@ -65,7 +76,7 @@ class LeaveManagementController extends Controller
             } else {
                 // If this was the last step, approve the whole request
                 $nextStepExists = $leaveRequest->steps()->where('step_index', $leaveRequest->current_step + 1)->exists();
-                
+
                 if ($nextStepExists) {
                     $leaveRequest->increment('current_step');
                 } else {
@@ -80,14 +91,14 @@ class LeaveManagementController extends Controller
 
             if ($validated['status'] === 'rejected') {
                 // Notify the employee their request was rejected
-                $fresh->user->notify(new \App\Notifications\LeaveRequestStatusChanged(
+                $fresh->user->notify(new LeaveRequestStatusChanged(
                     $fresh,
                     'rejected',
                     $validated['comment'] ?? null
                 ));
             } elseif ($fresh->status === 'approved') {
                 // Final approval — notify the employee
-                $fresh->user->notify(new \App\Notifications\LeaveRequestStatusChanged(
+                $fresh->user->notify(new LeaveRequestStatusChanged(
                     $fresh,
                     'approved',
                     $validated['comment'] ?? null
@@ -98,12 +109,25 @@ class LeaveManagementController extends Controller
                     ->firstWhere('step_index', $fresh->current_step)
                     ?->approver;
 
-                $nextApprover?->notify(new \App\Notifications\LeaveRequestSubmitted($fresh));
+                $nextApprover?->notify(new LeaveRequestSubmitted($fresh));
             }
         } catch (\Throwable) {
             // Notification failure must not break the approval flow
         }
 
         return back()->with('success', 'Leave request updated.');
+    }
+
+    private function redirectIfCompanyIsMissing(User $user): ?RedirectResponse
+    {
+        if ($user->company_id !== null) {
+            return null;
+        }
+
+        return redirect()->route('dashboard')->with('alert', [
+            'type' => 'error',
+            'title' => '無法進入請假審核',
+            'message' => '目前帳號尚未綁定公司，因此無法查看請假審核。',
+        ]);
     }
 }

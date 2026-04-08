@@ -3,6 +3,7 @@ vendor/
 .env
 .env.*
 !.env.example
+database/database.sqlite
 public/build/
 storage/logs/
 storage/framework/cache/

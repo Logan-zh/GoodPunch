@@ -5,13 +5,14 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
+    libsqlite3-dev \
     libzip-dev \
     zip \
     git \
     unzip \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo_mysql gd zip \
+    && docker-php-ext-install pdo_mysql pdo_sqlite gd zip \
     && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs
 
@@ -35,10 +36,10 @@ RUN cp .env.example .env \
     && php artisan key:generate \
     && mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs \
     && chmod -R 775 storage bootstrap/cache \
+    && rm -f database/database.sqlite \
     && touch database/database.sqlite \
-    && php artisan migrate --force 
-    
-RUN php artisan db:seed --force
+    && php artisan migrate --force \
+    && php artisan db:seed --force
 
 EXPOSE 8080
 # 啟動時只更新 APP_URL（若有設環境變數）再直接 serve，讓容器快速就緒
